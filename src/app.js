@@ -9,7 +9,7 @@ const app = express()
 app.use(express.json({limit:"16kb"}))
 app.use(express.urlencoded({limit:"16kb",extended:true}))
 app.use(express.static("public"))
-app.use(cookieParser)
+app.use(cookieParser())
 
 // cors middleware
 app.use(cors({
@@ -17,7 +17,6 @@ app.use(cors({
      credentials:true,
      methods:["GET","POST","PUT","DELETE","PATCH"],
      allowedHeaders:["Content-Type","Authorization"]
-    
 }))
 
 // import routes

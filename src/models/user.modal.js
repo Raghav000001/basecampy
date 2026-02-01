@@ -20,7 +20,7 @@ const userSchema = new Schema({
         required:true,
         trim:true,
         unique:true,
-        indexe:true,
+        index:true,
     },
     email:{
         type:String,
@@ -63,7 +63,7 @@ userSchema.methods.generateAccessToken = function () {
      const token = jwt.sign(
         {
             _id:this._id,
-            email:this._email,
+            email:this.email,
             userName:this.userName
         }
         ,process.env.ACCESS_TOKEN_SECRET,

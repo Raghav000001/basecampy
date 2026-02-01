@@ -12,7 +12,7 @@ import {ApiError} from "../utils/api_error.js"
              [err.path]:err.msg
         }))
 
-        throw new ApiError(422,extractedErrors,"received data is not valid") 
+        return next(new ApiError(422,extractedErrors,"received data is not valid")) 
 
    }
 

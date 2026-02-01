@@ -7,7 +7,7 @@ import { asyncHandler } from "../utils/async_handler.js";
         return res.status(200).json(new ApiResponse(200,{},"app is all good and running"))
       } catch (error) {
              console.log(error,"error in the health check route");  
-          }
+        }
       }
     
 //     const healthCheck = asyncHandler(async function (req,res) {
