@@ -247,22 +247,30 @@ const changeCurrentPassword = async (req, res) => {
         if (!oldPassword && !newPassword) {
             throw new ApiError(401, 'both old and new password are required')
         }
-        
+
         const user = await User.findById(req.user?._id)
         if (!user) {
-            throw new ApiError(401, 'sorry we can not process your request further')
+            throw new ApiError(
+                401,
+                'sorry we can not process your request further'
+            )
         }
-        
+
         const isOldPassValid = user.isPasswordCorrect(oldPassword)
         if (!isOldPassValid) {
-            throw new ApiError(401, {error:"old password is not correct"} , 'please enter correct old password')
+            throw new ApiError(
+                401,
+                { error: 'old password is not correct' },
+                'please enter correct old password'
+            )
         }
 
         user.password = newPassword
-        await user.save({validateBeforeSave:false})
+        await user.save({ validateBeforeSave: false })
 
-        return res.status(200).json(new ApiResponse(200, {}, "password changed successfully"))
-
+        return res
+            .status(200)
+            .json(new ApiResponse(200, {}, 'password changed successfully'))
     } catch (error) {
         throw new ApiError(
             500,
@@ -272,13 +280,96 @@ const changeCurrentPassword = async (req, res) => {
     }
 }
 
+const verifyEmail = async (req, res) => {
+    try {
+        const { verificationToken } = req.params
 
-const resetPasswordRequest = async (req,res) => {
-      
+        if (!verificationToken) {
+            throw new ApiError(400, {}, 'email verification token is missing')
+        }
+
+        let hashed = crypto
+            .createHash('sha256')
+            .update(verificationToken)
+            .digest('hex')
+
+        const user = await User.findOne({
+            emailVerificatiomToken: hashed,
+            emailVerificatiomTokenExpiry: { $gt: Date.now() },
+        })
+
+        if (!user) {
+            throw new ApiError(400, {}, 'invalid or expired token')
+        }
+
+        user.emailVerificatiomToken = undefined
+        user.emailVerificatiomTokenExpiry = undefined
+
+        user.isEmailVerified = true
+
+        await user.save({ validateBeforeSave: false })
+
+        return res
+            .status(200)
+            .json(
+                200,
+                { isEmailVerified: true },
+                'email is verified successfully'
+            )
+    } catch (error) {
+        console.log(error)
+        throw new ApiError(
+            500,
+            { err: error.message },
+            'error in send email api controller'
+        )
+    }
 }
 
-const resetPassword = async (req,res) => {
-   
+const resendVerificationEmail = async (req, res) => {
+    try {
+        const user = await User.findById(req.user?._id)
+        if (!user) {
+            throw new ApiError(404, {}, 'user does not exists')
+        }
+
+        if (user.isEmailVerified) {
+            throw new ApiError(400, {}, 'user is already verified')
+        }
+
+        const { unHashedToken, hashedToken, tokenExpiry } =
+            user.generateTemporaryToken()
+
+        user.emailVerificatiomToken = hashedToken
+        user.emailVerificatiomTokenExpiry = tokenExpiry
+
+        await user.save({ validateBeforeSave: false })
+
+        await sendEmail({
+            email: user?.email,
+            subject: 'Please Verify Your Email',
+            mailGenContent: emailVerificationMailContent(
+                user.userName,
+                `${req.protocol}://${req.get('host')}/api/v1/users/verify-email/${unHashedToken}`
+            ),
+        })
+
+       return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Mail has been sent to your email ID"));
+    } catch (error) {
+        console.log(error)
+        throw new ApiError(
+            500,
+            { err: error.message },
+            'error in resendVerificationEmail api controller'
+        )
+    }
+}
+
+const resetPasswordRequest = async (req, res) => {}
+
+const resetPassword = async (req, res) => {
 }
 
 export {
@@ -286,9 +377,11 @@ export {
     generateAccessAndRefreshToken,
     loginUser,
     logoutUser,
+    verifyEmail,
+    resendVerificationEmail,
     refreshAccessToken,
     getCurrentUser,
     changeCurrentPassword,
     resetPasswordRequest,
-    resetPassword
+    resetPassword,
 }

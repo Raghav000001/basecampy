@@ -42,4 +42,12 @@ const userLoginValidator = ()=> {
     ]          
 }
 
-export {userRegisterValidator,userLoginValidator}
+const changeCurrentPasswordValidator = ()=> {
+    return [
+        body("oldPassword").notEmpty().withMessage("Old password is required"),
+    body("newPassword").notEmpty().withMessage("New password is required"),
+  ]
+}
+
+
+export {userRegisterValidator,userLoginValidator,changeCurrentPasswordValidator}
