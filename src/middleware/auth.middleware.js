@@ -1,4 +1,4 @@
-import User from "../models/user.modal.js"
+import {User} from "../models/user.modal.js"
 import {ApiError} from "../utils/api_error.js"
 import jwt from "jsonwebtoken"
 

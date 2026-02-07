@@ -3,6 +3,7 @@ import { ApiError } from '../utils/api_error.js'
 import { ApiResponse } from '../utils/api_response.js'
 import { emailVerificationMailContent, sendEmail } from '../utils/mailer.js'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -230,11 +231,15 @@ const refreshAccessToken = async (req, res) => {
 
 const getCurrentUser = async (req, res) => {
     try {
-        return new ApiResponse(
-            200,
-            req.user,
-            'current user fetched successfully'
-        )
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    req.user,
+                    'current user fetched successfully'
+                )
+            )
     } catch (error) {
         console.log(error)
         throw new ApiError(500, {}, 'error in get current user api controller')
@@ -318,11 +323,10 @@ const verifyEmail = async (req, res) => {
             )
     } catch (error) {
         console.log(error)
-        throw new ApiError(
-            500,
-            { err: error.message },
-            'error in send email api controller'
-        )
+        if (error instanceof ApiError) {
+            throw error
+        }
+        throw new ApiError(500, {}, 'error in verify email controller')
     }
 }
 
@@ -354,9 +358,11 @@ const resendVerificationEmail = async (req, res) => {
             ),
         })
 
-       return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "Mail has been sent to your email ID"));
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(200, {}, 'Mail has been sent to your email ID')
+            )
     } catch (error) {
         console.log(error)
         throw new ApiError(
@@ -369,8 +375,94 @@ const resendVerificationEmail = async (req, res) => {
 
 const resetPasswordRequest = async (req, res) => {}
 
-const resetPassword = async (req, res) => {
+const resetPassword = async (req, res) => {}
+
+// just for the demo purpose
+const deleteAllUser = async (req, res) => {
+    try {
+        await User.deleteMany({}) // empty filter = sab delete
+        res.status(200).json({ message: 'All users deleted successfully' })
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
 }
+
+const softDelete = async (req, res) => {
+    try {
+        const { id } = req.body
+        const user = await User.findById(id)
+        if (!user) {
+            res.status(401).json({ error: 'user does not exists' })
+        }
+        await user.softDelete()
+        return res
+            .status(200)
+            .json({ message: `${user.fullName} got soft deleted successfully` })
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+}
+
+const restoreSoftDeletedUser = async (req, res) => {
+    try {
+        const { id } = req.body
+        const user = await User.findById(id).setOptions({
+            includeSoftDeleted: true,
+        })
+        if (!user) {
+            res.status(401).json({ error: 'user does not exists' })
+        }
+        await user.restore()
+        return res
+            .status(200)
+            .json({ message: `${user.fullName} got restored successfully` })
+    } catch (error) {
+    }
+}
+
+const getAllUser = async (req, res) => {
+    const users = await User.find({})
+    return res.status(200).json({ users })
+}
+
+// bulk operations
+const setUserStatusActiveInBulk = async function (req,res) {
+    try {
+       const result = await User.updateMany(
+        {
+           fullName:{
+              $regex:/^T/
+           }
+        },
+        {
+            $set:{
+                status:"Active"
+            }
+        }
+    ) 
+
+       return res.status(200).json({message:result.modifiedCount+" "+"documents updated"})
+   
+
+    } catch (error) {
+     res.status(500).json({ error: error.message })   
+    }
+}
+
+
+const mixBulk = async function (req,res) {
+    try {
+       const result =  await User.bulkWrite([
+    { updateMany: { filter: { status: 'Active' }, update: { $set: { status: 'inactive' } } } },
+    { deleteOne: { filter: { fullName: 'Test User 4' } } }  // Mix delete
+   ]);
+   return res.status(200).json({message:`${result.modifiedCount} doc's updated and ${result.deletedCount} doc's deleted`})
+    } catch (error) {
+         res.status(500).json({ error: error.message })   
+    }
+}
+
+
 
 export {
     registerUser,
@@ -384,4 +476,10 @@ export {
     changeCurrentPassword,
     resetPasswordRequest,
     resetPassword,
+    deleteAllUser,
+    softDelete,
+    getAllUser,
+    restoreSoftDeletedUser,
+    setUserStatusActiveInBulk,
+    mixBulk
 }

@@ -1,5 +1,5 @@
 import e from "express";
-import { registerUser , loginUser, verifyEmail, refreshAccessToken, logoutUser, getCurrentUser, changeCurrentPassword, resendVerificationEmail} from "../controllers/auth.controllers.js";
+import { registerUser , loginUser, verifyEmail, refreshAccessToken, logoutUser, getCurrentUser, changeCurrentPassword, resendVerificationEmail, deleteAllUser, softDelete, getAllUser, restoreSoftDeletedUser, setUserStatusActiveInBulk, mixBulk} from "../controllers/auth.controllers.js";
 import { changeCurrentPasswordValidator, userLoginValidator, userRegisterValidator } from "../validators/validator.js";
 import { validate } from "../middleware/validator.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
@@ -10,7 +10,13 @@ router.route("/register").post(userRegisterValidator(),validate,registerUser)
 router.route("/login").post(userLoginValidator(),validate,loginUser)
 
 router.route('/verify-email/:verificationToken').get(verifyEmail)
-router.route("refresh-token").post(refreshAccessToken)
+router.route("/refresh-token").post(refreshAccessToken)
+
+// testing purpose
+router.route("/delete-all-users").delete(deleteAllUser)
+router.route("/update-in-bulk").put(setUserStatusActiveInBulk)
+router.route("/mix-bulk").put(mixBulk)
+
 
 
 // secure routes
@@ -22,6 +28,11 @@ router.route("/change-password").post(
     validate,
     changeCurrentPassword
 )
+
+// soft delete route
+router.route("/soft-delete").post(softDelete)
+router.route("/restore-soft-delete").post(restoreSoftDeletedUser)
+router.route("/get-all-users").get(getAllUser)
 
 router
   .route("/resend-email-verification")
